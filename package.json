@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/CCOh125/Mediamammal#readme",
   "dependencies": {
+    "dotenv": "^17.1.0",
     "node-fetch": "^3.3.2",
     "playwright": "^1.53.2",
     "puppeteer": "^24.12.0"

@@ -24,7 +24,7 @@ async function extractVideoLinks() {
   );
 
   // Return only the URLs
-  return videos.map(video => video.url);
+  return videos.slice(0, 3).map(video => video.url);
 
   //await browser.close();
 }
