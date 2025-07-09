@@ -1,0 +1,26 @@
+{
+  "type": "module",
+  "name": "mediamammal",
+  "version": "1.0.0",
+  "description": "",
+  "main": "agent.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CCOh125/Mediamammal.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/CCOh125/Mediamammal/issues"
+  },
+  "homepage": "https://github.com/CCOh125/Mediamammal#readme",
+  "dependencies": {
+    "node-fetch": "^3.3.2",
+    "playwright": "^1.53.2",
+    "puppeteer": "^24.12.0"
+  }
+}
