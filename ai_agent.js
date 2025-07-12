@@ -1,18 +1,49 @@
 import { extractVideoLinks } from './agent.js';
 import 'dotenv/config';
+import puppeteer from 'puppeteer';
+import readline from 'readline';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + GEMINI_API_KEY;
 
-async function callGeminiWithUrls(urls) {
-  const prompt = 'A problem social media users experience is that they feel that they have \
-  wasted their time on social media. You are an agent responsible for enhancing a users \
-  social media experience. The user has identified categories, which refers to their goals \
-  and interests. Your objective is to recommend content that relates to the categories. \
-  This way users can use social media to aid their self-improvement. Given the video links \
-  evaluate each video link and determine whether you recommend it or not. Just return the \
-  video link with “recommend” or “not recommend”. \
-  Categories: User plays competitive basketball, interested in science and technology';
+// Function to collect user categories
+async function collectCategories() {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  const categories = [];
+  
+  console.log('Enter your categories');
+  console.log('Ex. Do you play any competitive sports? Hobbies? Issues you are interested in?');
+  console.log('Type "done" when you\'re finished adding categories.\n');
+
+  while (true) {
+    const category = await new Promise((resolve) => {
+      rl.question(`Category ${categories.length + 1}: `, resolve);
+    });
+
+    if (category.toLowerCase() === 'done') {
+      break;
+    }
+
+    if (category.trim()) {
+      categories.push(category.trim());
+    }
+  }
+
+  rl.close();
+  return categories;
+}
+
+async function callGeminiWithUrls(urls, categories) {
+  const prompt = `The user has provided categories, which refers to their goals and interests. Your objective is to recommend content that relates to the categories. This way users can continue their personal development when using social media instead of potentially hindering it. Given the video links evaluate each video link individually. \
+When evaluating: \
+Don’t just recommend content because it's popular and entertaining, put more emphasis on content that will educate the user in their categories. \
+Don’t recommend content that doesn’t relate to their categories \
+Return the video link with “recommend” or “not recommend”. \
+Categories: ${categories.join(', ')}`;
   const content = `${prompt}\n\n${urls.join('\n')}`;
 
   const body = {
@@ -41,11 +72,109 @@ async function callGeminiWithUrls(urls) {
   return data;
 }
 
+function parseGeminiResponse(responseText) {
+  // Each line: "<url> recommend" or "<url> not recommend"
+  const lines = responseText.split('\n').map(line => line.trim()).filter(Boolean);
+  const map = {};
+  
+  for (const line of lines) {
+    // Handle different possible formats
+    let url, recommendation;
+    
+    // Try to extract URL and recommendation from the line
+    if (line.includes('recommend') || line.includes('not recommend')) {
+      // Split on the last space to separate URL from recommendation
+      const lastSpaceIndex = line.lastIndexOf(' ');
+      if (lastSpaceIndex !== -1) {
+        url = line.substring(0, lastSpaceIndex).trim();
+        recommendation = line.substring(lastSpaceIndex + 1).trim();
+      }
+    }
+    
+    // Validate that we have both URL and recommendation
+    if (url && recommendation && (recommendation === 'recommend' || recommendation === 'not recommend')) {
+      // Clean up the URL (remove any extra formatting)
+      url = url.replace(/^\[|\]$/g, ''); // Remove brackets if present
+      map[url] = recommendation;
+      console.log(`Parsed: ${url} -> ${recommendation}`);
+    }
+  }
+  
+  //console.log('Final recommendations map:', map);
+  return map;
+}
+
 (async () => {
-  const urls = await extractVideoLinks();
+  // Collect user categories interactively before opening browser
+  const categories = await collectCategories();
+  
+  const browser = await puppeteer.launch({ headless: false });
+  const page = await browser.newPage();
+
+  const urls = await extractVideoLinks(page);
   console.log("loading please wait...");
-  const geminiResponse = await callGeminiWithUrls(urls);
+  const geminiResponse = await callGeminiWithUrls(urls, categories);
   console.log(
     geminiResponse.candidates[0].content.parts[0].text
   );
+  var geminiResponseText = geminiResponse.candidates[0].content.parts[0].text
+  const recommendations = parseGeminiResponse(geminiResponseText);
+
+  // Inject recommendations and real-time tooltip logic
+  await page.evaluate((recommendations) => {
+    // Create a tooltip element
+    let tooltip = document.createElement('div');
+    tooltip.style.position = 'fixed';
+    tooltip.style.background = '#222';
+    tooltip.style.color = '#fff';
+    tooltip.style.padding = '6px 12px';
+    tooltip.style.borderRadius = '4px';
+    tooltip.style.fontSize = '14px';
+    tooltip.style.pointerEvents = 'none';
+    tooltip.style.zIndex = '9999';
+    tooltip.style.display = 'none';
+    document.body.appendChild(tooltip);
+
+    function addTooltip(link) {
+      if (link.dataset.geminiTooltip) return; // Already processed
+      const url = link.href;
+      if (recommendations[url]) {
+        link.style.borderBottom = '2px dotted #007bff';
+
+        link.addEventListener('mouseenter', (e) => {
+          tooltip.textContent = `Agent: ${recommendations[url]}`;
+          tooltip.style.display = 'block';
+        });
+        link.addEventListener('mousemove', (e) => {
+          tooltip.style.left = e.clientX + 10 + 'px';
+          tooltip.style.top = e.clientY + 10 + 'px';
+        });
+        link.addEventListener('mouseleave', () => {
+          tooltip.style.display = 'none';
+        });
+        link.dataset.geminiTooltip = 'true'; // geminiTooltip is to signify whether data already has event listener
+      }
+    }
+
+    // Debounce function to limit how often we process DOM changes
+    function debounce(fn, delay) {
+      let timer = null;
+      return function(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), delay);
+      };
+    }
+
+    // Initial pass
+    document.querySelectorAll('a#video-title').forEach(addTooltip);
+
+    // Observe for new video links (real-time updates)
+    const observer = new MutationObserver(
+      debounce(() => {
+        document.querySelectorAll('a#video-title').forEach(addTooltip);
+      }, 300) // Only run every 300ms at most
+    );
+
+    observer.observe(document.body, { childList: true, subtree: true });
+  }, recommendations);
 })();
