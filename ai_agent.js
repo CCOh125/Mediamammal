@@ -31,7 +31,7 @@ function saveCategoriesToFile(categories) {
 }
 
 // Function to collect user categories
-async function collectCategories() {
+/*async function collectCategories() {
   let categories = loadCategoriesFromFile();
   const rl = readline.createInterface({
     input: process.stdin,
@@ -77,7 +77,7 @@ async function collectCategories() {
   rl.close();
   saveCategoriesToFile(categories);
   return categories;
-}
+}*/
 
 async function callGeminiWithUrls(urls, categories) {
   const prompt = `Your job is to act as an agent that recommends content to users. This way users can use social media as an aid for their personal development. 
@@ -159,30 +159,23 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-let userCategories = [];
+// Load categories from file on startup
+let userCategories = loadCategoriesFromFile();
 
-// Endpoint to get recommendations
-app.post('/recommend', async (req, res) => {
-  try {
-    const { urls } = req.body;
-    if (!urls || !Array.isArray(urls) || urls.length === 0) {
-      return res.status(400).json({ error: 'No URLs provided.' });
-    }
-    if (!userCategories.length) {
-      return res.status(400).json({ error: 'No categories set on server.' });
-    }
-    const geminiResponse = await callGeminiWithUrls(urls, userCategories);
-    const geminiResponseText = geminiResponse.candidates[0].content.parts[0].text;
-    const recommendations = parseGeminiResponse(geminiResponseText);
-    res.json({ recommendations });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error.' });
+// Endpoint to set categories from the extension
+app.post('/set-categories', (req, res) => {
+  const { categories } = req.body;
+  if (!Array.isArray(categories)) {
+    return res.status(400).json({ error: 'Categories must be an array.' });
   }
+  userCategories = categories;
+  saveCategoriesToFile(categories);
+  console.log('Categories updated from extension:', categories);
+  res.json({ success: true });
 });
 
 (async () => {
-  userCategories = await collectCategories();
+  //userCategories = await collectCategories();
   const PORT = 3000;
   app.listen(PORT, 'localhost', () => {
     console.log(`Gemini recommendation backend running on http://localhost:${PORT}`);

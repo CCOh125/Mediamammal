@@ -4,11 +4,17 @@
     "version": "1.0",
     "description": "Shows Gemini recommendations for YouTube videos.",
     "permissions": [
-      "scripting"
+      "storage"
     ],
     "host_permissions": [
       "http://localhost:3000/*"
     ],
+    "action": {
+      "default_title": "Mediamammal"
+    },
+    "background": {
+  "service_worker": "background.js"
+    },
     "content_scripts": [
       {
         "matches": ["https://www.youtube.com/*"],

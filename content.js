@@ -87,3 +87,10 @@ if (window.location.pathname === '/' || window.location.pathname === '/feed/tren
   setTimeout(processVideos, 5000);
   window.addEventListener('DOMContentLoaded', () => setTimeout(processVideos, 5000));
 }
+
+// Listen for restart message from background script
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'restart-recommendations') {
+    setTimeout(processVideos, 5000); // Wait for YouTube to update if needed
+  }
+});
