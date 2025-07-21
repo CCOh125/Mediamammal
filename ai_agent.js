@@ -71,8 +71,27 @@ Video links to evaluate:`;
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Gemini API error details:', errorText);
-    throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+    let errorMsg = `Gemini API error: ${response.status} ${response.statusText}`;
+    // Try to parse the error message for rate limit info
+    try {
+      const errorJson = JSON.parse(errorText);
+      if (errorJson && errorJson.error && errorJson.error.message) {
+        errorMsg += `\nDetails: ${errorJson.error.message}`;
+        // Optionally, check for specific rate limit keywords
+        if (
+          errorJson.error.message.toLowerCase().includes('rate limit') ||
+          errorJson.error.message.toLowerCase().includes('quota') ||
+          errorJson.error.message.toLowerCase().includes('exceeded')
+        ) {
+          errorMsg += '\nYou have reached the Gemini API rate limit (daily, hourly, or token quota). Please try again later or check your API usage in the Google Cloud Console.';
+        }
+      }
+    } catch (e) {
+      // If not JSON, just log the raw error text
+      errorMsg += `\nRaw error: ${errorText}`;
+    }
+    console.error(errorMsg);
+    throw new Error(errorMsg);
   }
 
   const data = await response.json();
