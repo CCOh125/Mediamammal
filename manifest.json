@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "YouTube Gemini Recommender",
+    "name": "Mediamammal",
     "version": "1.0",
-    "description": "Shows Gemini recommendations for YouTube videos.",
+    "description": "Agent guiding users social media experience",
     "permissions": [
       "storage"
     ],
