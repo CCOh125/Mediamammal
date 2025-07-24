@@ -1,8 +1,7 @@
-node_modules
-
-README2.md
-categories.json
-
-venv/
-
+node_modules/
 .env
+categories.json
+*.log
+.DS_Store
+*.pem
+*.crx
