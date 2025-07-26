@@ -1,0 +1,19 @@
+{
+  "name": "mediamammal-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Backend server for Mediamammal Chrome extension",
+  "main": "ai_agent.js",
+  "scripts": {
+    "start": "node ai_agent.js",
+    "dev": "node ai_agent.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

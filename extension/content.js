@@ -65,12 +65,27 @@ async function processVideos() {
         return;
       }
   
+    // Get categories from local storage
+    let categories = [];
     try {
-        console.log('YouTube Gemini Recommender: Sending video links to backend for recommendations...');
-      const res = await fetch('http://localhost:3000/recommend', {
+      const result = await chrome.storage.local.get(['mediamammal_categories']);
+      categories = result.mediamammal_categories || [];
+      console.log('YouTube Gemini Recommender: Loaded categories from local storage:', categories);
+    } catch (err) {
+      console.error('YouTube Gemini Recommender: Error loading categories:', err);
+    }
+    
+    if (categories.length === 0) {
+      console.log('YouTube Gemini Recommender: No categories found. Please set categories in the extension popup.');
+      return;
+    }
+  
+    try {
+        console.log('YouTube Gemini Recommender: Sending video links and categories to backend for recommendations...');
+      const res = await fetch('https://mediamammaltest.uc.r.appspot.com/recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ urls: videoLinks })
+        body: JSON.stringify({ urls: videoLinks, categories: categories })
       });
       if (!res.ok) {
           console.error('YouTube Gemini Recommender: Gemini backend error:', await res.text());

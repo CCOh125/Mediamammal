@@ -28,17 +28,7 @@ function renderCategories(categories) {
   });
 }
 
-function sendCategoriesToBackend(categories) {
-  fetch('http://localhost:3000/set-categories', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ categories })
-  }).then(res => res.json()).then(data => {
-    console.log('Categories sent to backend:', data);
-  }).catch(err => {
-    console.error('Error sending categories to backend:', err);
-  });
-}
+// Categories are now stored locally, no need to send to backend
 
 function notifyBackgroundToRestart() {
   chrome.runtime.sendMessage({ action: 'restart-recommendations' });
@@ -71,10 +61,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // On popup close, send categories to backend and notify background
+    // On popup close, save categories locally and notify background
     window.addEventListener('unload', () => {
       saveCategories(categories);
-      sendCategoriesToBackend(categories);
       notifyBackgroundToRestart();
     });
   });

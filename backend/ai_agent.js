@@ -1,33 +1,8 @@
 import express from 'express';
 import 'dotenv/config';
 import cors from 'cors';
-import fs from 'fs';
-
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + GEMINI_API_KEY;
-const CATEGORY_FILE = 'categories.json';
-
-// Function to load categories from file
-function loadCategoriesFromFile() {
-  try {
-    if (fs.existsSync(CATEGORY_FILE)) {
-      const data = fs.readFileSync(CATEGORY_FILE, 'utf-8');
-      return JSON.parse(data);
-    }
-  } catch (err) {
-    console.error('Error loading categories from file:', err);
-  }
-  return [];
-}
-
-// Function to save categories to file
-function saveCategoriesToFile(categories) {
-  try {
-    fs.writeFileSync(CATEGORY_FILE, JSON.stringify(categories, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error saving categories to file:', err);
-  }
-}
 
 async function callGeminiWithUrls(urls, categories) {
   const prompt = `Your job is to act as an agent that recommends content to users. This way users can use social media as an aid for their personal development. 
@@ -121,29 +96,26 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Load categories from file on startup
-let userCategories = loadCategoriesFromFile();
-
 // Health check endpoint
 app.get('/', (req, res) => {
   res.json({ 
     status: 'OK', 
     message: 'Mediamammal backend is running',
-    categories: userCategories.length ? userCategories.join(', ') : '(none)'
+    note: 'Categories are now stored locally in the extension'
   });
 });
 
 // Endpoint to get recommendations
 app.post('/recommend', async (req, res) => {
   try {
-    const { urls } = req.body;
+    const { urls, categories } = req.body;
     if (!urls || !Array.isArray(urls) || urls.length === 0) {
       return res.status(400).json({ error: 'No URLs provided.' });
     }
-    if (!userCategories.length) {
-      return res.status(400).json({ error: 'No categories set on server.' });
+    if (!categories || !Array.isArray(categories) || categories.length === 0) {
+      return res.status(400).json({ error: 'No categories provided.' });
     }
-    const geminiResponse = await callGeminiWithUrls(urls, userCategories);
+    const geminiResponse = await callGeminiWithUrls(urls, categories);
     const geminiResponseText = geminiResponse.candidates[0].content.parts[0].text;
     const recommendations = parseGeminiResponse(geminiResponseText);
     res.json({ recommendations });
@@ -153,17 +125,7 @@ app.post('/recommend', async (req, res) => {
   }
 });
 
-// Endpoint to set categories from the extension
-app.post('/set-categories', (req, res) => {
-  const { categories } = req.body;
-  if (!Array.isArray(categories)) {
-    return res.status(400).json({ error: 'Categories must be an array.' });
-  }
-  userCategories = categories;
-  saveCategoriesToFile(categories);
-  console.log('Categories updated from extension:', categories);
-  res.json({ success: true });
-});
+// Categories are now stored locally in the extension
 
 // Get the port from environment variable (for App Engine) or use 3000 for local development
 const PORT = process.env.PORT || 3000;
@@ -172,5 +134,5 @@ const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
 app.listen(PORT, HOST, () => {
   console.log(`Mediamammal backend running on http://${HOST}:${PORT}`);
   console.log('Ready to receive POST requests to /recommend');
-  console.log('Loaded categories:', userCategories.length ? userCategories.join(', ') : '(none)');
+  console.log('Categories are now stored locally in the extension');
 }); 
