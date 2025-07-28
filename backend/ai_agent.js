@@ -19,7 +19,9 @@ Categories: ${categories.join(', ')}
 
 When evaluating youtube videos:
 Make sure to evaluate each link individually with the criteria, there shouldn't be any correlation between whether you recommend one link and another.
-Additionally don’t recommend content that doesn’t relate to the categories. In particular, some content may have the appearance or a video title that makes it seem like it relates to the categories, but they don’t actually have anything to do with the category. It's important to really evaluate the content core, to see if it really will educate the user on their category or not.
+Additionally don’t recommend content that doesn’t relate to the categories.
+In particular, some content may have the appearance or a video title that makes it seem like it relates to the categories, but they don’t actually have anything to do with the category.
+It's important to really evaluate the content core, to see if it really will educate the user on their category or not.
 
 IMPORTANT: For each video link, respond with exactly this format and nothing else:
 <url> recommend
@@ -73,6 +75,52 @@ Video links to evaluate:`;
   return data;
 }
 
+async function callGeminiWithUrlsShort(urls) {
+  const prompt = `Video links to evaluate:`;
+  const content = `${prompt}\n${urls.join('\n')}`;
+
+  const body = {
+    contents: [
+      { parts: [{ text: content }] }
+    ]
+  };
+
+  console.log('Short request body:', JSON.stringify(body, null, 2));
+
+  const response = await fetch(GEMINI_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorMsg = `Gemini API error: ${response.status} ${response.statusText}`;
+    try {
+      const errorJson = JSON.parse(errorText);
+      if (errorJson && errorJson.error && errorJson.error.message) {
+        errorMsg += `\nDetails: ${errorJson.error.message}`;
+        if (
+          errorJson.error.message.toLowerCase().includes('rate limit') ||
+          errorJson.error.message.toLowerCase().includes('quota') ||
+          errorJson.error.message.toLowerCase().includes('exceeded')
+        ) {
+          errorMsg += '\nYou have reached the Gemini API rate limit. Please try again later.';
+        }
+      }
+    } catch (e) {
+      errorMsg += `\nRaw error: ${errorText}`;
+    }
+    console.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  const data = await response.json();
+  return data;
+}
+
 function parseGeminiResponse(responseText) {
   console.log('Raw Gemini response:', responseText);
   const lines = responseText.split('\n').map(line => line.trim()).filter(Boolean);
@@ -105,17 +153,47 @@ app.get('/', (req, res) => {
   });
 });
 
+// Track processed URLs on the server side
+let serverProcessedUrls = new Set();
+
 // Endpoint to get recommendations
 app.post('/recommend', async (req, res) => {
   try {
-    const { urls, categories } = req.body;
+    const { urls, categories, isInitialRequest, resetProcessedUrls } = req.body;
     if (!urls || !Array.isArray(urls) || urls.length === 0) {
       return res.status(400).json({ error: 'No URLs provided.' });
     }
+    
+    // Reset processed URLs if requested (for new page loads)
+    if (resetProcessedUrls) {
+      serverProcessedUrls.clear();
+      console.log('Server: Reset processed URLs');
+    }
+    
+    // Filter out already processed URLs on server side
+    const newUrls = urls.filter(url => !serverProcessedUrls.has(url));
+    
+    if (newUrls.length === 0) {
+      console.log('Server: All URLs already processed, returning empty recommendations');
+      return res.json({ recommendations: {} });
+    }
+    
+    // Mark URLs as processed before sending to Gemini
+    newUrls.forEach(url => serverProcessedUrls.add(url));
+    
     if (!categories || !Array.isArray(categories) || categories.length === 0) {
       return res.status(400).json({ error: 'No categories provided.' });
     }
-    const geminiResponse = await callGeminiWithUrls(urls, categories);
+    
+    let geminiResponse;
+    if (isInitialRequest) {
+      // Full prompt for initial request
+      geminiResponse = await callGeminiWithUrls(newUrls, categories);
+    } else {
+      // Short prompt for scroll requests
+      geminiResponse = await callGeminiWithUrlsShort(newUrls);
+    }
+    
     const geminiResponseText = geminiResponse.candidates[0].content.parts[0].text;
     const recommendations = parseGeminiResponse(geminiResponseText);
     res.json({ recommendations });
