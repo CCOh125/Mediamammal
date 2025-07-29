@@ -60,6 +60,13 @@ let processedUrls = new Set();
 let categories = [];
 let isInitialLoad = true;
 
+// Reset function for page reloads
+function resetForNewPage() {
+    processedUrls.clear();
+    isInitialLoad = true;
+    console.log('YouTube Gemini Recommender: Reset for new page load');
+}
+
 // Main logic: scrape, send, inject
 async function processVideos(isInitialRequest = true) {
     const videoLinks = getVideoLinks();
@@ -99,7 +106,7 @@ async function processVideos(isInitialRequest = true) {
 
     try {
         console.log(`YouTube Gemini Recommender: Processing ${newVideoLinks.length} new video links (${isInitialRequest ? 'initial' : 'scroll'} request)...`);
-        const res = await fetch('http://localhost:3000/recommend', {
+        const res = await fetch('https://mediamammaltest.uc.r.appspot.com/recommend', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -126,9 +133,21 @@ async function processVideos(isInitialRequest = true) {
     }
 }
   
-  // Initial processing
+  // Reset on page load and initial processing
+  resetForNewPage();
   setTimeout(() => processVideos(true), 5000);
-  window.addEventListener('DOMContentLoaded', () => setTimeout(() => processVideos(true), 5000));
+  window.addEventListener('DOMContentLoaded', () => {
+    resetForNewPage();
+    setTimeout(() => processVideos(true), 5000);
+  });
+  
+  // Also reset on page visibility change (for when user comes back to tab)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      resetForNewPage();
+      setTimeout(() => processVideos(true), 2000);
+    }
+  });
   
   // Scroll detection with debouncing
   let scrollTimeout;
@@ -152,8 +171,7 @@ async function processVideos(isInitialRequest = true) {
 // Listen for restart message from background script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'restart-recommendations') {
-    processedUrls.clear(); // Reset processed URLs
-    isInitialLoad = true; // Reset initial load flag
+    resetForNewPage();
     setTimeout(() => processVideos(true), 5000); // Wait for YouTube to update if needed
   }
 });

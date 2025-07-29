@@ -75,8 +75,21 @@ Video links to evaluate:`;
   return data;
 }
 
-async function callGeminiWithUrlsShort(urls) {
-  const prompt = `Video links to evaluate:`;
+async function callGeminiWithUrlsShort(urls, categories) {
+  const prompt = `Your job is to act as an agent that recommends content to users based on their categories.
+Categories: ${categories.join(', ')}
+
+When evaluating youtube videos:
+Make sure to evaluate each link individually with the criteria, there shouldn't be any correlation between whether you recommend one link and another.
+Additionally don't recommend content that doesn't relate to the categories.
+In particular, some content may have the appearance or a video title that makes it seem like it relates to the categories, but they don't actually have anything to do with the category.
+It's important to really evaluate the content core, to see if it really will educate the user on their category or not.
+
+IMPORTANT: For each video link, respond with exactly this format and nothing else:
+<url> recommend
+<url> not recommend
+Do not include any explanations, categories, or extra text. Only output the list in the format above.
+Video links to evaluate:`;
   const content = `${prompt}\n${urls.join('\n')}`;
 
   const body = {
@@ -187,11 +200,11 @@ app.post('/recommend', async (req, res) => {
     
     let geminiResponse;
     if (isInitialRequest) {
-      // Full prompt for initial request
+      // Full prompt for initial request (includes detailed instructions about content quality)
       geminiResponse = await callGeminiWithUrls(newUrls, categories);
     } else {
-      // Short prompt for scroll requests
-      geminiResponse = await callGeminiWithUrlsShort(newUrls);
+      // Short prompt for scroll requests (includes categories but less detailed instructions to save tokens)
+      geminiResponse = await callGeminiWithUrlsShort(newUrls, categories);
     }
     
     const geminiResponseText = geminiResponse.candidates[0].content.parts[0].text;
