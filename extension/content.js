@@ -1,6 +1,15 @@
 // Only run on the YouTube homepage
 if (window.location.pathname === '/' || window.location.pathname === '/feed/trending') {
   console.log("Correct page")
+  
+  // Check if this is a fresh page load (not navigation within the site)
+  const isFreshPageLoad = performance.navigation.type === 1 || // TYPE_RELOAD
+                          performance.getEntriesByType('navigation')[0]?.type === 'reload';
+  
+  if (isFreshPageLoad) {
+    console.log('YouTube Gemini Recommender: Fresh page load detected');
+  }
+  
   // Scrape video links from the page
 
 function getVideoLinks() {
@@ -59,12 +68,14 @@ function injectTooltips(recommendations) {
 let processedUrls = new Set();
 let categories = [];
 let isInitialLoad = true;
+let hasResetForThisPage = false;
 
 // Reset function for page reloads
 function resetForNewPage() {
     processedUrls.clear();
     isInitialLoad = true;
-    console.log('YouTube Gemini Recommender: Reset for new page load');
+    hasResetForThisPage = false;
+    console.log('YouTube Gemini Recommender: Reset for new page load - processedUrls cleared, isInitialLoad reset to true');
 }
 
 // Main logic: scrape, send, inject
@@ -106,6 +117,15 @@ async function processVideos(isInitialRequest = true) {
 
     try {
         console.log(`YouTube Gemini Recommender: Processing ${newVideoLinks.length} new video links (${isInitialRequest ? 'initial' : 'scroll'} request)...`);
+        
+        // Determine if we should reset server processed URLs
+        // Reset if this is the first initial request for this page load
+        const shouldResetServer = isInitialRequest && !hasResetForThisPage;
+        
+        if (shouldResetServer) {
+            console.log('YouTube Gemini Recommender: Will request server to reset processed URLs');
+        }
+        
         const res = await fetch('https://mediamammaltest.uc.r.appspot.com/recommend', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -113,9 +133,15 @@ async function processVideos(isInitialRequest = true) {
                 urls: newVideoLinks, 
                 categories: categories,
                 isInitialRequest: isInitialRequest,
-                resetProcessedUrls: isInitialRequest && isInitialLoad
+                resetProcessedUrls: shouldResetServer
             })
         });
+        
+        if (shouldResetServer) {
+            hasResetForThisPage = true;
+            console.log('YouTube Gemini Recommender: Requested server to reset processed URLs');
+        }
+        
         if (!res.ok) {
             console.error('YouTube Gemini Recommender: Gemini backend error:', await res.text());
             return;
@@ -134,11 +160,21 @@ async function processVideos(isInitialRequest = true) {
 }
   
   // Reset on page load and initial processing
-  resetForNewPage();
+  if (isFreshPageLoad) {
+    resetForNewPage();
+  }
   setTimeout(() => processVideos(true), 5000);
   window.addEventListener('DOMContentLoaded', () => {
-    resetForNewPage();
+    if (isFreshPageLoad) {
+      resetForNewPage();
+    }
     setTimeout(() => processVideos(true), 5000);
+  });
+  
+  // Detect actual page reloads
+  window.addEventListener('beforeunload', () => {
+    // This will trigger when the page is about to reload
+    console.log('YouTube Gemini Recommender: Page reload detected');
   });
   
   // Also reset on page visibility change (for when user comes back to tab)
