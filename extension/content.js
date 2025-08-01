@@ -46,7 +46,7 @@ function getVideoLinks() {
       
       const videoLinks = links
         .map(link => link.href.startsWith('http') ? link.href : 'https://www.youtube.com' + link.getAttribute('href'))
-        .filter(href => href && href.startsWith('https://www.youtube.com/watch'));
+      .filter(href => href && href.startsWith('https://www.youtube.com/watch'));
       const uniqueLinks = Array.from(new Set(videoLinks)).slice(0, 100); // Limit to first 100
       console.log('YouTube Gemini Recommender: Retrieved video links:', uniqueLinks);
       return uniqueLinks;
@@ -130,15 +130,15 @@ function resetForNewPage() {
     hasResetForThisPage = false;
     console.log('YouTube Gemini Recommender: Reset for new page load - processedUrls cleared, isInitialLoad reset to true');
 }
-
+  
 // Main logic: scrape, send, inject
 async function processVideos(isInitialRequest = true) {
     const videoLinks = getVideoLinks();
-    if (videoLinks.length === 0) {
+      if (videoLinks.length === 0) {
         console.log('YouTube Gemini Recommender: No video links found on the page.');
         return;
-    }
-
+      }
+  
     // Reset processed URLs on initial load or page change
     if (isInitialLoad) {
         processedUrls.clear();
@@ -154,20 +154,20 @@ async function processVideos(isInitialRequest = true) {
 
     // Get categories from local storage (only on initial request)
     if (isInitialRequest) {
-        try {
-            const result = await chrome.storage.local.get(['mediamammal_categories']);
-            categories = result.mediamammal_categories || [];
-            console.log('YouTube Gemini Recommender: Loaded categories from local storage:', categories);
-        } catch (err) {
-            console.error('YouTube Gemini Recommender: Error loading categories:', err);
-        }
-        
-        if (categories.length === 0) {
-            console.log('YouTube Gemini Recommender: No categories found. Please set categories in the extension popup.');
-            return;
+    try {
+      const result = await chrome.storage.local.get(['mediamammal_categories']);
+      categories = result.mediamammal_categories || [];
+      console.log('YouTube Gemini Recommender: Loaded categories from local storage:', categories);
+    } catch (err) {
+      console.error('YouTube Gemini Recommender: Error loading categories:', err);
+    }
+    
+    if (categories.length === 0) {
+      console.log('YouTube Gemini Recommender: No categories found. Please set categories in the extension popup.');
+      return;
         }
     }
-
+  
     try {
         console.log(`YouTube Gemini Recommender: Processing ${newVideoLinks.length} new video links (${isInitialRequest ? 'initial' : 'scroll'} request)...`);
         
@@ -180,33 +180,33 @@ async function processVideos(isInitialRequest = true) {
         }
         
         const res = await fetch(`${SERVER_URL}/recommend`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 urls: newVideoLinks, 
                 categories: categories,
                 isInitialRequest: isInitialRequest,
                 resetProcessedUrls: shouldResetServer
             })
-        });
+      });
         
         if (shouldResetServer) {
             hasResetForThisPage = true;
             console.log('YouTube Gemini Recommender: Requested server to reset processed URLs');
         }
         
-        if (!res.ok) {
-            console.error('YouTube Gemini Recommender: Gemini backend error:', await res.text());
-            return;
-        }
-        const data = await res.json();
+      if (!res.ok) {
+          console.error('YouTube Gemini Recommender: Gemini backend error:', await res.text());
+        return;
+      }
+      const data = await res.json();
         console.log('YouTube Gemini Recommender: Received recommendations:', data.recommendations);
         
         // Mark URLs as processed (client-side backup)
         newVideoLinks.forEach(url => processedUrls.add(url));
         
         // Inject tooltips for new recommendations
-        injectTooltips(data.recommendations || {});
+      injectTooltips(data.recommendations || {});
     } catch (err) {
         console.error('YouTube Gemini Recommender: Error contacting Gemini backend:', err);
     }
