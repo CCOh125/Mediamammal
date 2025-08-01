@@ -1,5 +1,12 @@
 backend/
+node_modules/
 .env
+g.cloudignore
+ai_agent.js
+app.yaml
+package-lock.json
+package.json
+
 
 unused/
 
