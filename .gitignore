@@ -1,6 +1,6 @@
-backend/
-node_modules/
 .env
+node_modules/
+backend/
 g.cloudignore
 ai_agent.js
 app.yaml
