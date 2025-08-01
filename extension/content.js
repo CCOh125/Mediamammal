@@ -1,6 +1,14 @@
-// Only run on the YouTube homepage
-if (window.location.pathname === '/' || window.location.pathname === '/feed/trending') {
-  console.log("Correct page")
+// Run on YouTube homepage, trending page, and video pages (but not shorts)
+const isHomePage = window.location.pathname === '/' || window.location.pathname === '/feed/trending';
+const isVideoPage = window.location.pathname.startsWith('/watch');
+const isShortsPage = window.location.pathname.startsWith('/shorts');
+
+if ((isHomePage || isVideoPage) && !isShortsPage) {
+  console.log("YouTube Gemini Recommender: Running on YouTube page")
+  
+  // Configuration - uncomment the line you want to use
+  //const SERVER_URL = 'http://localhost:3000'; // For local testing
+  const SERVER_URL = 'https://mediamammaltest.uc.r.appspot.com'; // For production server
   
   // Check if this is a fresh page load (not navigation within the site)
   const isFreshPageLoad = performance.navigation.type === 1 || // TYPE_RELOAD
@@ -13,10 +21,33 @@ if (window.location.pathname === '/' || window.location.pathname === '/feed/tren
   // Scrape video links from the page
 
 function getVideoLinks() {
-      const links = Array.from(document.querySelectorAll('a[href^="/watch"]'))
+      // On video pages, focus on recommended videos in the sidebar
+      // On homepage/trending, get all video links
+      let links;
+      if (window.location.pathname.startsWith('/watch')) {
+        // For video pages, only get links from the recommended videos section
+        const recommendedSection = document.querySelector('#secondary #related');
+        if (recommendedSection) {
+          links = Array.from(recommendedSection.querySelectorAll('a[href^="/watch"]'));
+        } else {
+          // Fallback: get all video links but exclude comment section
+          const allLinks = Array.from(document.querySelectorAll('a[href^="/watch"]'));
+          const commentSection = document.querySelector('#comments');
+          if (commentSection) {
+            links = allLinks.filter(link => !commentSection.contains(link));
+          } else {
+            links = allLinks;
+          }
+        }
+      } else {
+        // For homepage/trending, get all video links
+        links = Array.from(document.querySelectorAll('a[href^="/watch"]'));
+      }
+      
+      const videoLinks = links
         .map(link => link.href.startsWith('http') ? link.href : 'https://www.youtube.com' + link.getAttribute('href'))
-      .filter(href => href && href.startsWith('https://www.youtube.com/watch'));
-      const uniqueLinks = Array.from(new Set(links)).slice(0, 100); // Limit to first 100
+        .filter(href => href && href.startsWith('https://www.youtube.com/watch'));
+      const uniqueLinks = Array.from(new Set(videoLinks)).slice(0, 100); // Limit to first 100
       console.log('YouTube Gemini Recommender: Retrieved video links:', uniqueLinks);
       return uniqueLinks;
 }
@@ -60,8 +91,30 @@ function injectTooltips(recommendations) {
       }
     }
   
-      document.querySelectorAll('a[href^="/watch"]').forEach(addTooltip);
-      console.log('YouTube Gemini Recommender: Tooltips injected for all recommended links.');
+      // Apply the same selective logic for tooltip injection
+      let linksToProcess;
+      if (window.location.pathname.startsWith('/watch')) {
+        // For video pages, only process recommended videos in the sidebar
+        const recommendedSection = document.querySelector('#secondary #related');
+        if (recommendedSection) {
+          linksToProcess = Array.from(recommendedSection.querySelectorAll('a[href^="/watch"]'));
+        } else {
+          // Fallback: get all video links but exclude comment section
+          const allLinks = Array.from(document.querySelectorAll('a[href^="/watch"]'));
+          const commentSection = document.querySelector('#comments');
+          if (commentSection) {
+            linksToProcess = allLinks.filter(link => !commentSection.contains(link));
+          } else {
+            linksToProcess = allLinks;
+          }
+        }
+      } else {
+        // For homepage/trending, process all video links
+        linksToProcess = document.querySelectorAll('a[href^="/watch"]');
+      }
+      
+      linksToProcess.forEach(addTooltip);
+      console.log('YouTube Gemini Recommender: Tooltips injected for recommended links.');
 }
   
 // Track processed URLs to avoid duplicates (client-side backup)
@@ -126,7 +179,7 @@ async function processVideos(isInitialRequest = true) {
             console.log('YouTube Gemini Recommender: Will request server to reset processed URLs');
         }
         
-        const res = await fetch('https://mediamammaltest.uc.r.appspot.com/recommend', {
+        const res = await fetch(`${SERVER_URL}/recommend`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 

@@ -9,19 +9,16 @@ async function callGeminiWithUrls(urls, categories) {
 The user has provided some categories, which refers to their goals. Your objective is to recommend content that relates to the categories.
 Categories might be the subject they are studying or it might be an activity they are passionate about. For example a computer science major will say a goal of Computer Science and a competitive basketball player will say a goal is basketball. 
 When analyzing if a content relates to a goal you need to be careful. Some content might relate to the category, but it is just designed to grab attention. For example, by leveraging social media influencer's popularity or using a new trend. 
-Another case is perhaps a content is just entertainment and just happens to have a title similar to the category. For example it could actually be about something else but it just has the name of the category.
-Or maybe it is trying to provoke emotions such as rage and pleasure. Do not recommend those types of content because it doesn’t teach anything about the topic.
-Even though they are fun to watch at the moment, it doesn’t teach them anything useful, so it doesn’t help them in their goals long term.
+Or maybe it is trying to provoke emotions such as rage and pleasure. Those types of content don't teach anything about the topic.
+Or maybe it has the appearance of relating to the category but is actually just entertainment or for another purpose. For example, it might be about an internet phenomenon such as memes, or it might be entertainment such as movies or video games. Those types of content don’t have any connection with the topic.
+Do not recommend these contents. Even though they are fun to watch at the moment, it doesn’t teach them anything useful, so it doesn’t help them in their goals long term.
 Instead, recommend content that relates to the category but teaches the user new information instead of trying to get views. One example would be content where an expert or professional in the field shares their experience and advice. 
-Or content displaying information in novel ways such as through visualizations or in-depth analysis.
+Or content that displays information in novel ways. For example by doing an in-depth analysis or visualization.
 
 Categories: ${categories.join(', ')}
 
 When evaluating youtube videos:
 Make sure to evaluate each link individually with the criteria, there shouldn't be any correlation between whether you recommend one link and another.
-Additionally don’t recommend content that doesn’t relate to the categories.
-In particular, some content may have the appearance or a video title that makes it seem like it relates to the categories, but they don’t actually have anything to do with the category.
-It's important to really evaluate the content core, to see if it really will educate the user on their category or not.
 
 IMPORTANT: For each video link, respond with exactly this format and nothing else:
 <url> recommend
@@ -76,14 +73,10 @@ Video links to evaluate:`;
 }
 
 async function callGeminiWithUrlsShort(urls, categories) {
-  const prompt = `Your job is to act as an agent that recommends content to users based on their categories.
-Categories: ${categories.join(', ')}
+  const prompt = `Categories: ${categories.join(', ')}
 
 When evaluating youtube videos:
 Make sure to evaluate each link individually with the criteria, there shouldn't be any correlation between whether you recommend one link and another.
-Additionally don't recommend content that doesn't relate to the categories.
-In particular, some content may have the appearance or a video title that makes it seem like it relates to the categories, but they don't actually have anything to do with the category.
-It's important to really evaluate the content core, to see if it really will educate the user on their category or not.
 
 IMPORTANT: For each video link, respond with exactly this format and nothing else:
 <url> recommend

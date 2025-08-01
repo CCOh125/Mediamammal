@@ -1,5 +1,17 @@
 node_modules/
 .env
+ai_agent.js
+app.yaml
+package-lock.json
+package.json
+
+agent.js
+ai_agentOLD.js
+bugtest.js
+categories.json
+GCPserver.md
+prompttest.js
+
 categories.json
 *.log
 .DS_Store
