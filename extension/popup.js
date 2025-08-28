@@ -7,7 +7,17 @@ function saveCategories(categories) {
 
 function loadCategories(callback) {
   chrome.storage.local.get([STORAGE_KEY], (result) => {
-    callback(result[STORAGE_KEY] || []);
+    // Default categories for new users
+    const defaultCategories = ['Gaming', 'Entertainment', 'People & Blogs'];
+    
+    // If no categories are stored, use defaults
+    if (!result[STORAGE_KEY] || result[STORAGE_KEY].length === 0) {
+      callback(defaultCategories);
+      // Save the default categories for future use
+      saveCategories(defaultCategories);
+    } else {
+      callback(result[STORAGE_KEY]);
+    }
   });
 }
 

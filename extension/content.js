@@ -52,6 +52,58 @@ function getVideoLinks() {
       return uniqueLinks;
 }
   
+// Detect current theme (light/dark mode)
+function detectTheme() {
+  // Check for YouTube's dark mode class
+  const isDarkMode = document.documentElement.classList.contains('dark') || 
+                     document.body.classList.contains('dark') ||
+                     document.querySelector('html[dark]') !== null;
+  return isDarkMode ? 'dark' : 'light';
+}
+
+// Replace thumbnails for non-recommended videos
+function replaceThumbnails(recommendations) {
+  const theme = detectTheme();
+  const whaleImage = theme === 'dark' ? 'whalethumb2.png' : 'whalethumb1.png';
+  
+  // Get all video links on the page
+  let videoLinks;
+  if (window.location.pathname.startsWith('/watch')) {
+    // For video pages, only process recommended videos in the sidebar
+    const recommendedSection = document.querySelector('#secondary #related');
+    if (recommendedSection) {
+      videoLinks = Array.from(recommendedSection.querySelectorAll('a[href^="/watch"]'));
+    } else {
+      // Fallback: get all video links but exclude comment section
+      const allLinks = Array.from(document.querySelectorAll('a[href^="/watch"]'));
+      const commentSection = document.querySelector('#comments');
+      if (commentSection) {
+        videoLinks = allLinks.filter(link => !commentSection.contains(link));
+      } else {
+        videoLinks = allLinks;
+      }
+    }
+  } else {
+    // For homepage/trending, process all video links
+    videoLinks = Array.from(document.querySelectorAll('a[href^="/watch"]'));
+  }
+  
+  videoLinks.forEach(link => {
+    const url = link.href;
+    const isRecommended = recommendations[url];
+    
+    // Find the thumbnail within this video link
+    const thumbnail = link.querySelector('img[src*="i.ytimg.com"]');
+    if (thumbnail && !isRecommended) {
+      // Replace thumbnail with whale image for non-recommended videos
+      const extensionUrl = chrome.runtime.getURL(whaleImage);
+      thumbnail.src = extensionUrl;
+      thumbnail.style.objectFit = 'cover';
+      console.log(`YouTube Gemini Recommender: Replaced thumbnail for non-recommended video: ${url}`);
+    }
+  });
+}
+
 // Inject tooltips based on recommendations
 function injectTooltips(recommendations) {
     let tooltip = document.getElementById('gemini-tooltip');
@@ -205,8 +257,14 @@ async function processVideos(isInitialRequest = true) {
         // Mark URLs as processed (client-side backup)
         newVideoLinks.forEach(url => processedUrls.add(url));
         
+        // Update current recommendations for theme changes
+        updateCurrentRecommendations(data.recommendations || {});
+        
         // Inject tooltips for new recommendations
-      injectTooltips(data.recommendations || {});
+        injectTooltips(data.recommendations || {});
+        
+        // Replace thumbnails for non-recommended videos
+        replaceThumbnails(data.recommendations || {});
     } catch (err) {
         console.error('YouTube Gemini Recommender: Error contacting Gemini backend:', err);
     }
@@ -264,3 +322,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     setTimeout(() => processVideos(true), 5000); // Wait for YouTube to update if needed
   }
 });
+
+// Observe theme changes and update thumbnails accordingly
+let currentRecommendations = {};
+const themeObserver = new MutationObserver((mutations) => {
+  mutations.forEach((mutation) => {
+    if (mutation.type === 'attributes' && 
+        (mutation.attributeName === 'class' || mutation.attributeName === 'dark')) {
+      // Theme changed, update thumbnails with new theme
+      replaceThumbnails(currentRecommendations);
+    }
+  });
+});
+
+// Start observing theme changes
+themeObserver.observe(document.documentElement, {
+  attributes: true,
+  attributeFilter: ['class', 'dark']
+});
+
+// Update currentRecommendations when new recommendations are received
+function updateCurrentRecommendations(recommendations) {
+  currentRecommendations = recommendations;
+}
