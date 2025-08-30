@@ -52,6 +52,8 @@ function getVideoLinks() {
       return uniqueLinks;
 }
   
+
+
 // Detect current theme (light/dark mode)
 function detectTheme() {
   // Check for YouTube's dark mode class
@@ -63,8 +65,17 @@ function detectTheme() {
 
 // Replace thumbnails for non-recommended videos
 function replaceThumbnails(recommendations) {
+  console.log('YouTube Gemini Recommender: replaceThumbnails called with recommendations:', recommendations);
+  
+  // Don't replace thumbnails if no recommendations are available
+  if (!recommendations || Object.keys(recommendations).length === 0) {
+    console.log('YouTube Gemini Recommender: No recommendations available, skipping thumbnail replacement');
+    return;
+  }
+  
   const theme = detectTheme();
   const whaleImage = theme === 'dark' ? 'whalethumb2.png' : 'whalethumb1.png';
+  console.log(`YouTube Gemini Recommender: Using whale image for ${theme} theme: ${whaleImage}`);
   
   // Get all video links on the page
   let videoLinks;
@@ -88,18 +99,24 @@ function replaceThumbnails(recommendations) {
     videoLinks = Array.from(document.querySelectorAll('a[href^="/watch"]'));
   }
   
+  console.log('YouTube Gemini Recommender: Found video links:', videoLinks.length);
+  
   videoLinks.forEach(link => {
     const url = link.href;
-    const isRecommended = recommendations[url];
+    const recommendation = recommendations[url];
+    
+    console.log(`YouTube Gemini Recommender: Checking video ${url} - recommendation: ${recommendation}`);
     
     // Find the thumbnail within this video link
     const thumbnail = link.querySelector('img[src*="i.ytimg.com"]');
-    if (thumbnail && !isRecommended) {
-      // Replace thumbnail with whale image for non-recommended videos
-      const extensionUrl = chrome.runtime.getURL(whaleImage);
-      thumbnail.src = extensionUrl;
-      thumbnail.style.objectFit = 'cover';
-      console.log(`YouTube Gemini Recommender: Replaced thumbnail for non-recommended video: ${url}`);
+    if (thumbnail) {
+      if (recommendation === 'not recommend') {
+        // Replace thumbnail with whale image for non-recommended videos
+        const extensionUrl = chrome.runtime.getURL(whaleImage);
+        thumbnail.src = extensionUrl;
+        thumbnail.style.objectFit = 'cover';
+        console.log(`YouTube Gemini Recommender: Replaced thumbnail for non-recommended video: ${url} with ${whaleImage}`);
+      }
     }
   });
 }
@@ -257,8 +274,7 @@ async function processVideos(isInitialRequest = true) {
         // Mark URLs as processed (client-side backup)
         newVideoLinks.forEach(url => processedUrls.add(url));
         
-        // Update current recommendations for theme changes
-        updateCurrentRecommendations(data.recommendations || {});
+
         
         // Inject tooltips for new recommendations
         injectTooltips(data.recommendations || {});
@@ -322,26 +338,3 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     setTimeout(() => processVideos(true), 5000); // Wait for YouTube to update if needed
   }
 });
-
-// Observe theme changes and update thumbnails accordingly
-let currentRecommendations = {};
-const themeObserver = new MutationObserver((mutations) => {
-  mutations.forEach((mutation) => {
-    if (mutation.type === 'attributes' && 
-        (mutation.attributeName === 'class' || mutation.attributeName === 'dark')) {
-      // Theme changed, update thumbnails with new theme
-      replaceThumbnails(currentRecommendations);
-    }
-  });
-});
-
-// Start observing theme changes
-themeObserver.observe(document.documentElement, {
-  attributes: true,
-  attributeFilter: ['class', 'dark']
-});
-
-// Update currentRecommendations when new recommendations are received
-function updateCurrentRecommendations(recommendations) {
-  currentRecommendations = recommendations;
-}

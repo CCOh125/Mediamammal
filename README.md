@@ -14,5 +14,8 @@ Many people feel like they are wasting their time on social media, but continue 
 - Log on to **youtube** to enjoy!
 
 ## Changelog
+- v2: 
+    Default Categories when you first load the extension
+    Replaces thumbnails that agent doesn't recommend
 - v1.1
 - v1: Test, limited features
