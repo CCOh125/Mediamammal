@@ -7,8 +7,8 @@ if ((isHomePage || isVideoPage) && !isShortsPage) {
   console.log("YouTube Gemini Recommender: Running on YouTube page")
   
   // Configuration - uncomment the line you want to use
-  //const SERVER_URL = 'http://localhost:3000'; // For local testing
-  const SERVER_URL = 'https://mediamammaltest.uc.r.appspot.com'; // For production server
+  const SERVER_URL = 'http://localhost:3000'; // For local testing
+  //const SERVER_URL = 'https://mediamammaltest.uc.r.appspot.com'; // For production server
   
   // Check if this is a fresh page load (not navigation within the site)
   const isFreshPageLoad = performance.navigation.type === 1 || // TYPE_RELOAD
@@ -123,6 +123,9 @@ function replaceThumbnails(recommendations) {
 
 // Inject tooltips based on recommendations
 function injectTooltips(recommendations) {
+    // Also replace thumbnails when injecting tooltips to ensure consistency
+    replaceThumbnails(recommendations);
+    
     let tooltip = document.getElementById('gemini-tooltip');
     if (!tooltip) {
       tooltip = document.createElement('div');
@@ -276,11 +279,8 @@ async function processVideos(isInitialRequest = true) {
         
 
         
-        // Inject tooltips for new recommendations
+        // Inject tooltips for new recommendations (this also replaces thumbnails)
         injectTooltips(data.recommendations || {});
-        
-        // Replace thumbnails for non-recommended videos
-        replaceThumbnails(data.recommendations || {});
     } catch (err) {
         console.error('YouTube Gemini Recommender: Error contacting Gemini backend:', err);
     }
