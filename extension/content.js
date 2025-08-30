@@ -7,8 +7,8 @@ if ((isHomePage || isVideoPage) && !isShortsPage) {
   console.log("YouTube Gemini Recommender: Running on YouTube page")
   
   // Configuration - uncomment the line you want to use
-  const SERVER_URL = 'http://localhost:3000'; // For local testing
-  //const SERVER_URL = 'https://mediamammaltest.uc.r.appspot.com'; // For production server
+  //const SERVER_URL = 'http://localhost:3000'; // For local testing
+  const SERVER_URL = 'https://mediamammaltest.uc.r.appspot.com'; // For production server
   
   // Check if this is a fresh page load (not navigation within the site)
   const isFreshPageLoad = performance.navigation.type === 1 || // TYPE_RELOAD
