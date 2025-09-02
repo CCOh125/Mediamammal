@@ -18,6 +18,11 @@
     "content_scripts": [
       {
         "matches": ["https://www.youtube.com/*"],
+        "js": ["content.js", "youtube-content.js"],
+        "run_at": "document_idle"
+      },
+      {
+        "matches": ["https://www.instagram.com/*"],
         "js": ["content.js"],
         "run_at": "document_idle"
       }
@@ -25,7 +30,7 @@
     "web_accessible_resources": [
       {
         "resources": ["whalethumb1.png", "whalethumb2.png"],
-        "matches": ["https://www.youtube.com/*"]
+        "matches": ["https://www.youtube.com/*", "https://www.instagram.com/*"]
       }
     ]
   }
