@@ -8,10 +8,10 @@ Many people feel like they are wasting their time on social media, but continue 
 ## Installation
 - Download the folder. In chrome go to google extensions, turn on developer mode, click load unpacked and select this folder.
 
-- To set categories click on Extension icon and then Mediamammal. Add your categories (e.g., "Computer Science", "Basketball", "Meditation")
+- To set categories click on Extension icon and then Mediamammal. Add your categories (e.g., "Computer Science", "Basketball", "Meditation"). Click on a category to delete.
     - categories: Your goals and intrests that you want to improve in.
 
-- Log on to social media websites and enjoy! Right now it works for **youtube.com** and instagram reels
+- Log on to social media websites and enjoy(you might have to wait some time)! Right now it works for **youtube.com** and instagram reels
 
 ## Changelog
 - v2.1:
