@@ -23,7 +23,7 @@
       },
       {
         "matches": ["https://www.instagram.com/*"],
-        "js": ["content.js"],
+        "js": ["content.js", "instagram-content.js"],
         "run_at": "document_idle"
       }
     ],

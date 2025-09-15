@@ -11,9 +11,11 @@ Many people feel like they are wasting their time on social media, but continue 
 - To set categories click on Extension icon and then Mediamammal. Add your categories (e.g., "Computer Science", "Basketball", "Meditation")
     - categories: Your goals and intrests that you want to improve in.
 
-- Log on to **youtube** to enjoy!
+- Log on to social media websites and enjoy! Right now it works for **youtube.com** and instagram reels
 
 ## Changelog
+- v2.1:
+    Started adding support for Instagram
 - v2: 
     Default Categories when you first load the extension
     Replaces thumbnails that agent doesn't recommend

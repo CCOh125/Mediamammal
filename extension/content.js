@@ -5,8 +5,8 @@ console.log('Mediamammal: Platform detector initialized');
 
 // Server configuration - shared across all platforms
 // Uncomment the line you want to use for local testing
-const SERVER_URL = 'http://localhost:3000'; // For local testing
-//const SERVER_URL = 'https://mediamammaltest.uc.r.appspot.com'; // For production server
+//const SERVER_URL = 'http://localhost:3000'; // For local testing
+const SERVER_URL = 'https://mediamammaltest.uc.r.appspot.com'; // For production server
 
 // Make SERVER_URL globally accessible to all platform scripts
 window.MEDIAMAMMAL_SERVER_URL = SERVER_URL;
